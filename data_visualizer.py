@@ -7,11 +7,13 @@ dat=pandas.read_csv('KLOT_ParkForest_Refl.csv')
 # data=pandas.read_csv('KLOT_ParkForest_Rvel.csv')
 N = len(dat)
 dat = dat[dat['elevAngle'] > 9]
-dat.add
+dat['x'] = pandas.Series(range(N))
+dat['y'] = pandas.Series(range(N))
 
-for i in range(N):
-	dat['x'][i] = (dat['longitude'][i]-['longitude'][0])*111*np.cosd(dat['latitude'][i]) # km
-	dat['y'][i] = (dat['latitude'][i]-['latitude'][0])*111 # km
+for i in range(2633, N-2632):
+	print(dat['longitude'][:])
+	dat['x'][i] = (dat['longitude'][i]-['longitude'][2633])*111*np.cosd(dat['latitude'][i]) # km
+	dat['y'][i] = (dat['latitude'][i]-['latitude'][2633])*111 # km
 
 
 # data = {'refl':dat['value'], 'lat':np.zeros(N), 'lon':np.zeros(N), 'height':dat['heightRel']}
