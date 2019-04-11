@@ -12,31 +12,36 @@ import numpy as np
 
 
 
-def ParticleFilter(dataBuckets, particleCount = 1000, cullLimit = .5, terminalVel = 600):
+def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel = 600):
 	
-	particles = GetParticleHeights(dataBuckets[0], particleCount)
+	particles = getParticleHeights(dataBuckets[0], particleCount)
 
 	for i in range(len(dataBuckets)):   # NEED TO UPDATE PARTICLES
 		#main loopy thing for each step
 
 		#particles is a 2d array[heights, accuracy (low is better)]
 		for particle in particles:
-			particle[1] = ParticleAccuracy(particle[0] - (terminalVel * random.random()), dataBuckets[i])
+			particle[1] = particleAccuracy(particle[0] - (terminalVel * random.random()), dataBuckets[i])
 
 		particleMedian = np.median(particles[:,1])
 
-		if(i == len(dataBuckets)):
-			for particle in particles:
-				if (particle[1] < np.median(particles) * cullLimit): #if something is broken try reversing the greater than sign
-					particle[0] -= (terminalVel * (1+random.random()*.25))
-				else:
-					#assign new height here
-					particle = np.mean(particles[:,0]) + ((.5 - random.random()) * np.std(particles[:,0] * .5))
-
+		if(i != len(dataBuckets)):
+			new_particles = np.zeros((len(particles),2))
+			count = 0
+			for i, particle in enumerate(particles):
+				if (particle[1] < particleMedian * cullLimit): #if something is broken try reversing the greater than sign
+					p1 = np.copy(particle)
+					p1[0] -= (terminalVel * (1.25-random.random()*.5))
+					p2 = np.copy(particle)
+					p2[0] -= (terminalVel * (1.25-random.random()*.5))
+					new_particles[count] =  p1
+					new_particles[count+1] = p2
+					count += 2
+			particles = new_particles
 	return(particles)
 
 
-def GetParticleHeights(dataBucket, particleCount):
+def getParticleHeights(dataBucket, particleCount):
 
 	startParticles = np.zeros((particleCount,2)) #array of particle heights & accuarcy
 	initialHeights = np.zeros((len(dataBucket),1))
@@ -54,10 +59,10 @@ def GetParticleHeights(dataBucket, particleCount):
 	return(startParticles)
 
 
-def ParticleAccuracy(height, dataSlice):
+def particleAccuracy(height, dataSlice):
 
-	accuarcy = 0
+	accuracy = 0
 	for data in dataSlice:
-		accuarcy += (np.abs(height - data.height) * data.refl)
+		accuracy += (np.abs(height - data.height) * (data.refl+10.5))
 	
-	return accuarcy;
+	return accuracy;
