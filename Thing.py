@@ -12,7 +12,7 @@ import numpy as np
 
 
 
-def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel = 600):
+def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel = "hat"):
 	
 	results = []
 	particles = getParticleHeights(dataBuckets[0], particleCount)
@@ -22,6 +22,8 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel
 
 		if(i):
 			terminalVel = (np.mean([b.height for b in dataBuckets[i-1]]) - np.mean([b.height for b in dataBuckets[i]]))
+		else:
+			terminalVel = (np.mean([b.height for b in dataBuckets[0]]) - np.mean([b.height for b in dataBuckets[1]]))
 
 		#particles is a 2d array[heights, accuracy (low is better)]
 		for particle in particles:
@@ -43,7 +45,23 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel
 					count += 2
 			particles = new_particles
 			results += [particles]
-	return(results)
+
+
+	# heightPerStep = (np.mean([b.height for b in dataBuckets[0]]) - np.mean([b.height for b in dataBuckets[len(dataBuckets)-1]]))/ len(dataBuckets) #height per step
+	# terminalVel = heightPerStep
+	# xVel = (np.mean([b.x for b in dataBuckets[0]]) - np.mean([b.x for b in dataBuckets[len(dataBuckets)-1]]))/ len(dataBuckets)
+	# yVel = (np.mean([b.x for b in dataBuckets[0]]) - np.mean([b.x for b in dataBuckets[len(dataBuckets)-1]]))/ len(dataBuckets)
+
+
+	# groundPos = np.zeros((len(results[-1]),1))
+
+	# for i,data in enumerate(results[len(results) - 1]):
+	# 	stepsTillGround	= data[0]/heightPerStep
+	# 	groundPosX[i] = stepsTillGround * xVel
+	# 	groundPosY[i] = stepsTillGround * yVel
+
+	
+	return(results) #, (groundPosX, groundPosY))
 
 
 def getParticleHeights(dataBucket, particleCount):
@@ -70,4 +88,4 @@ def particleAccuracy(height, dataSlice):
 	for data in dataSlice:
 		accuracy += (np.abs(height - data.height) * (data.refl+10.5))
 	
-	return accuracy;
+	return (accuracy)

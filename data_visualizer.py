@@ -52,6 +52,7 @@ for data in slices:
 # plt.show()
 
 output = particleFilter(slices, particleCount=10000, terminalVel=1)
+
 x = []
 y = []
 z = []
@@ -67,10 +68,11 @@ landX = [x[-1]-direction[0]*h for h in list(output[-1][:,0])]
 landY = [y[-1]-direction[1]*h for h in list(output[-1][:,0])]
 ax.scatter(landX, landY, 0)
 
-# plt.hist(output[0][:,0], 100)
-# plt.hist(output[1][:,0], 100)
-# plt.hist(output[2][:,0], 100)
-# plt.legend(['1','2','3'])
+plt.show()
+for data in output:
+	plt.hist(data[:,0], 100)
+plt.legend([str(i) for i in range(1,len(output)+1)])
+
 plt.show()
 plt.hist(landX, 100)
 plt.show()
