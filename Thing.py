@@ -20,6 +20,9 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel
 	for i in range(len(dataBuckets)):   # NEED TO UPDATE PARTICLES
 		#main loopy thing for each step
 
+		if(i):
+			terminalVel = (np.mean([b.height for b in dataBuckets[i-1]]) - np.mean([b.height for b in dataBuckets[i]]))
+
 		#particles is a 2d array[heights, accuracy (low is better)]
 		for particle in particles:
 			particle[1] = particleAccuracy(particle[0] - (terminalVel * random.random()), dataBuckets[i])
