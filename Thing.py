@@ -38,7 +38,7 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel
 				if (particle[1] < particleMedian * cullLimit): #if something is broken try reversing the greater than sign
 					p1 = np.copy(particle)
 					p1[0] -= (terminalVel * (1.25-random.random()*.5))
-				 	p2 = np.copy(particle)
+					p2 = np.copy(particle)
 					p2[0] -= (terminalVel * (1.25-random.random()*.5))
 					new_particles[count] =  p1
 					new_particles[count+1] = p2
