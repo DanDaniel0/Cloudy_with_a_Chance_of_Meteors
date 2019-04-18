@@ -49,8 +49,7 @@ slices = slice(points, n_slices=6)
 
 # plt.show()
 output = particleFilter(slices, particleCount=10000, terminalVel=1)
-plt.hist(output[0][:,0], 100)
-plt.hist(output[1][:,0], 100)
-plt.hist(output[2][:,0], 100)
-plt.legend(['1','2','3'])
+for data in output:
+	plt.hist(data[:,0], 100)
+plt.legend([str(i) for i in range(1,len(output)+1)])
 plt.show()
