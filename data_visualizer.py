@@ -40,17 +40,37 @@ for i in range(N):
 
 slices = slice(points, n_slices=6)
 
-# fig = plt.figure()
-# ax = fig.add_subplot(111, aspect='equal', projection='3d')
-# # ax.scatter(get(points, 'x'), get(points, 'y'), get(points, 'height'), c=get(points, 'refl'))
+fig = plt.figure()
+ax = fig.add_subplot(111, aspect='equal', projection='3d')
+# ax.scatter(get(points, 'x'), get(points, 'y'), get(points, 'height'), c=get(points, 'refl'))
 # ax.scatter(get(slices[0], 'x'), get(slices[0], 'y'), get(slices[0], 'height'), c='k')
 # ax.scatter(get(slices[1], 'x'), get(slices[1], 'y'), get(slices[1], 'height'), c='b')
 # ax.scatter(get(slices[2], 'x'), get(slices[2], 'y'), get(slices[2], 'height'), c='g')
+for data in slices:
+	ax.scatter(get(data, 'x'), get(data, 'y'), get(data, 'height'))
 
 # plt.show()
+
 output = particleFilter(slices, particleCount=10000, terminalVel=1)
-plt.hist(output[0][:,0], 100)
-plt.hist(output[1][:,0], 100)
-plt.hist(output[2][:,0], 100)
-plt.legend(['1','2','3'])
+x = []
+y = []
+z = []
+for data, particles in zip(slices, output):
+	x += [np.mean(get(data, 'x'))]
+	y += [np.mean(get(data, 'y'))]
+	z += [np.mean(list(particles[:,0]))]
+ax.plot(x,y,z)
+
+direction = [x[-1]-x[0], y[-1]-y[0], z[-1]-z[0]]
+direction = [d/direction[2] for d in direction]
+landX = [x[-1]-direction[0]*h for h in list(output[-1][:,0])]
+landY = [y[-1]-direction[1]*h for h in list(output[-1][:,0])]
+ax.scatter(landX, landY, 0)
+
+# plt.hist(output[0][:,0], 100)
+# plt.hist(output[1][:,0], 100)
+# plt.hist(output[2][:,0], 100)
+# plt.legend(['1','2','3'])
+plt.show()
+plt.hist(landX, 100)
 plt.show()
