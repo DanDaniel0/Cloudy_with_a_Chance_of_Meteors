@@ -14,6 +14,7 @@ import numpy as np
 
 def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel = 600):
 	
+	results = []
 	particles = getParticleHeights(dataBuckets[0], particleCount)
 
 	for i in range(len(dataBuckets)):   # NEED TO UPDATE PARTICLES
@@ -38,7 +39,8 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel
 					new_particles[count+1] = p2
 					count += 2
 			particles = new_particles
-	return(particles)
+			results += [particles]
+	return(results)
 
 
 def getParticleHeights(dataBucket, particleCount):
