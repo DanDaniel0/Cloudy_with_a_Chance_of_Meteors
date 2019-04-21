@@ -22,6 +22,8 @@ def slice(points, angle=np.pi/4, n_slices=5):
 	delta = (dmax-dmin)/n_slices
 	for i, point in enumerate(points):
 		slices[min(int((d[i]-dmin)/delta),n_slices-1)] += [point]
+		point.d = d[i]
+		point.n = np.sqrt(point.x**2+point.y**2-d[i]**2)
 	return slices
 		
 def project(x, y, angle):
@@ -69,10 +71,10 @@ landY = [y[-1]-direction[1]*h for h in list(output[-1][:,0])]
 ax.scatter(landX, landY, 0)
 
 plt.show()
-for data in output:
-	plt.hist(data[:,0], 100)
-plt.legend([str(i) for i in range(1,len(output)+1)])
+# for data in output:
+# 	plt.hist(data[:,0], 100)
+# plt.legend([str(i) for i in range(1,len(output)+1)])
 
-plt.show()
-plt.hist(landX, 100)
-plt.show()
+# plt.show()
+# plt.hist(landX, 100)
+# plt.show()
