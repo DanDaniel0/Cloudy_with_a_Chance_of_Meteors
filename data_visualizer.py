@@ -58,7 +58,7 @@ output = particleFilter(slices, particleCount=10000, terminalVel=1)
 x = []
 y = []
 z = []
-for data, particles in zip(slices[1:], output):
+for data, particles in zip(slices, output):
 	x += [np.mean(get(data, 'x'))]
 	y += [np.mean(get(data, 'y'))]
 	z += [np.mean(list(particles[:,0]))]

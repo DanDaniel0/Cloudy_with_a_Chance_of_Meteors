@@ -10,41 +10,42 @@
 import random
 import numpy as np
 
+def get(points, key):
+	return [getattr(p,key) for p in points]
 
-
-def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel = "hat"):
+def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel = 1):
 	
 	results = []
-	particles = getParticleHeights(dataBuckets[0], particleCount)
+	particles = getParticleHeights(dataBuckets, particleCount, terminalVel)
 
 	for i in range(len(dataBuckets)):   # NEED TO UPDATE PARTICLES
 		#main loopy thing for each step
 
-		if(i):
-			terminalVel = (np.mean([b.height for b in dataBuckets[i-1]]) - np.mean([b.height for b in dataBuckets[i]]))
-		else:
-			terminalVel = (np.mean([b.height for b in dataBuckets[0]]) - np.mean([b.height for b in dataBuckets[1]]))
+		#if(i):
+		#	terminalVel = (np.mean([b.height for b in dataBuckets[i-1]]) - np.mean([b.height for b in dataBuckets[i]]))
+		#else:
+		#	terminalVel = (np.mean([b.height for b in dataBuckets[0]]) - np.mean([b.height for b in dataBuckets[1]]))
 
 		#particles is a 2d array[heights, accuracy (low is better)]
 		for particle in particles:
-			particle[1] = particleAccuracy(particle[0] - (terminalVel * random.random()), dataBuckets[i])
-
-		particleMedian = np.median(particles[:,1])
+			particle[1] = particleAccuracy(particle, dataBuckets[i])
+		print(len(particles))
+		particles = particles[particles[:,0].argsort()]
+		particles = particles[:len(particles)//cullLimit,:]
+		print(len(particles))
 
 		if(i != len(dataBuckets)):
-			new_particles = np.zeros((len(particles),2))
-			count = 0
-			for i, particle in enumerate(particles):
-				if (particle[1] < particleMedian * cullLimit): #if something is broken try reversing the greater than sign
+			for i, particle in enumerate(particles[:,:]):
+				for j in range(cullLimit-1):
 					p1 = np.copy(particle)
-					p1[0] -= (terminalVel * (1.25-random.random()*.5))
-					p2 = np.copy(particle)
-					p2[0] -= (terminalVel * (1.25-random.random()*.5))
-					new_particles[count] =  p1
-					new_particles[count+1] = p2
-					count += 2
-			particles = new_particles
+					p1[2] -= (particle[2] * (1.5-random.random()*1))
+					p1[3] -= (particle[3] * (1.5-random.random()*1))
+					particles = [p1] + particles
 			results += [particles]
+			print(len(particles))
+		for particle in particles: # Move the particles here
+			particle[0] -= particle[2]
+			particle[4] += particle[3]
 
 
 	# heightPerStep = (np.mean([b.height for b in dataBuckets[0]]) - np.mean([b.height for b in dataBuckets[len(dataBuckets)-1]]))/ len(dataBuckets) #height per step
@@ -64,28 +65,55 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 1, terminalVel
 	return(results) #, (groundPosX, groundPosY))
 
 
-def getParticleHeights(dataBucket, particleCount):
+def getParticleHeights(dataBuckets, particleCount, terminalVel):
+ 	
+ 	#height, accuracy, zVel, nVel, nPos
+	startParticles = np.zeros((particleCount,5))   #array of particle heights & accuarcy
+	initialHeights = np.zeros((len(dataBuckets[0]),1)) 
+	initialN = np.zeros((len(dataBuckets[0]),1)) 
 
-	startParticles = np.zeros((particleCount,2)) #array of particle heights & accuarcy
-	initialHeights = np.zeros((len(dataBucket),1))
+	stepVel = ((np.max([b.d for b in dataBuckets[-1]]) - np.min([b.d for b in dataBuckets[0]])))
+	terminalVel = np.sqrt((np.max([b.d for b in dataBuckets[-1]]) - np.min([b.d for b in dataBuckets[0]]))**2 \
+		+ (np.max([b.height for b in dataBuckets[0]]) - np.min([b.height for b in dataBuckets[-1]]))**2)
 
-	for i,point in enumerate(dataBucket):
+	stepVel = stepVel/len(dataBuckets)
+	terminalVel = terminalVel/len(dataBuckets)
+
+
+	bVel = np.sqrt(terminalVel**2- stepVel**2)
+	print((terminalVel, stepVel))
+
+
+	for i,point in enumerate(dataBuckets[0]):
 		initialHeights[i] = point.height
 
-	range(1,particleCount+1)
+	for i,point in enumerate(dataBuckets[0]):
+		initialN[i] = point.n
+
+	#range(1,particleCount+1)
 	starterMax = max(initialHeights)
 	starterMin = min(initialHeights)
+	starterNMax = max(initialN)
+	starterNMin = min(initialN)
 
 	for i in range(particleCount):
 		startParticles[i][0] = (random.random() * (starterMax - starterMin)) + starterMin
+		startParticles[i][4] = (random.random() * (starterNMax - starterNMin)) + starterNMin
+
+
+		angle = (random.random()*np.pi/4)-(np.pi/8)
+		startParticles[i][2] = np.cos(angle)*bVel
+		startParticles[i][3] = np.sin(angle)*bVel
+
 
 	return(startParticles)
 
 
-def particleAccuracy(height, dataSlice):
+def particleAccuracy(particle, dataSlice):
 
 	accuracy = 0
 	for data in dataSlice:
-		accuracy += (np.abs(height - data.height) * (data.refl+10.5))
+
+		accuracy += np.sqrt((np.abs(particle[0] - data.height)**2 + (particle[4] - data.n)**2) * (data.refl+10.5))
 	
 	return (accuracy)
