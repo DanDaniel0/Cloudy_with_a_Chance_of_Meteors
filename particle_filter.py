@@ -1,14 +1,18 @@
-#To Do:
-#
-# - Load data and get into useable fomt. (Dictionary)
-# - Load Wind Data
-# - Find Orentaion
-# - Partilce filter for 3 space
-# - Function for Landing Prediction (Kinematics)
-# - Landing Visualization 2D
-# - Landing Visulalaztion 3D
+#@ Carrie, this is not the final state of the code, we still need to:
+# - use 'n' when plotting the results
+# - verify our results
+# - figure out how to implement a 2D projected heatmap on a 3D plot
+# - polish & comment.
+# - more potential tasks we forgot to mention
+
 import random
 import numpy as np
+
+#Each DataBuckets is an array of DataBucket (also refered to as DataSlice)
+#Each DataBucket is an array of points
+#Each point as attributes such as .x (x position), .y (y position), .height (height), .relf (reflectivity), .d (distance along axis of greatest variation), .n (distance perpendictular to the axis of greatest variation)
+#Each Particles is an array of particles
+#Each Particle is an array with the structure of [height, accuracy, zVel, nVel, nPos]
 
 def get(points, key):
 	return [getattr(p,key) for p in points]
@@ -16,21 +20,13 @@ def get(points, key):
 def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel = 1):
 	
 	results = []
-	particles = getParticleHeights(dataBuckets, particleCount, terminalVel)
+	particles = getParticleHeights(dataBuckets, particleCount, terminalVel) # This gets initial values for the particles
 
-	for i in range(len(dataBuckets)):   # NEED TO UPDATE PARTICLES
-		#main loopy thing for each step
-
-		#if(i):
-		#	terminalVel = (np.mean([b.height for b in dataBuckets[i-1]]) - np.mean([b.height for b in dataBuckets[i]]))
-		#else:
-		#	terminalVel = (np.mean([b.height for b in dataBuckets[0]]) - np.mean([b.height for b in dataBuckets[1]]))
-
-		#particles is a 2d array[heights, accuracy (low is better)]
+	for i in range(len(dataBuckets)): #This is where we sort, cull, and replace our particles
+		
 		for particle in particles:
 			particle[1] = particleAccuracy(particle, dataBuckets[i])
 		particles = particles[particles[:,0].argsort()]
-		# particles = particles[:len(particles)//cullLimit,:]
 		counter = len(particles)//cullLimit
 		if(i != len(dataBuckets)):
 			for particle in particles[:len(particles)//cullLimit,:]:
@@ -38,34 +34,17 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel
 					p1 = np.copy(particle)
 					p1[2] -= (particle[2] * (1.5-random.random()*1))
 					p1[3] -= (particle[3] * (1.5-random.random()*1))
-					# particles[counter] = p1
 					counter += 1
 			results += [particles]
-		for particle in particles: # Move the particles here
+
+		for particle in particles: # We move the particles here
 			particle[0] -= particle[2]
 			particle[4] += particle[3]
 
-
-	# heightPerStep = (np.mean([b.height for b in dataBuckets[0]]) - np.mean([b.height for b in dataBuckets[len(dataBuckets)-1]]))/ len(dataBuckets) #height per step
-	# terminalVel = heightPerStep
-	# xVel = (np.mean([b.x for b in dataBuckets[0]]) - np.mean([b.x for b in dataBuckets[len(dataBuckets)-1]]))/ len(dataBuckets)
-	# yVel = (np.mean([b.x for b in dataBuckets[0]]) - np.mean([b.x for b in dataBuckets[len(dataBuckets)-1]]))/ len(dataBuckets)
-
-
-	# groundPos = np.zeros((len(results[-1]),1))
-
-	# for i,data in enumerate(results[len(results) - 1]):
-	# 	stepsTillGround	= data[0]/heightPerStep
-	# 	groundPosX[i] = stepsTillGround * xVel
-	# 	groundPosY[i] = stepsTillGround * yVel
-
-	
-	return(results) #, (groundPosX, groundPosY))
-
+	return(results)
 
 def getParticleHeights(dataBuckets, particleCount, terminalVel):
  	
- 	#height, accuracy, zVel, nVel, nPos
 	startParticles = np.zeros((particleCount,5))   #array of particle heights & accuarcy
 	initialHeights = np.zeros((len(dataBuckets[0]),1))
 	initialN = np.zeros((len(dataBuckets[0]),1))
@@ -88,7 +67,6 @@ def getParticleHeights(dataBuckets, particleCount, terminalVel):
 	for i,point in enumerate(dataBuckets[0]):
 		initialN[i] = point.n
 
-	#range(1,particleCount+1)
 	starterMax = max(initialHeights)
 	starterMin = min(initialHeights)
 	starterNMax = max(initialN)
@@ -106,8 +84,7 @@ def getParticleHeights(dataBuckets, particleCount, terminalVel):
 
 	return(startParticles)
 
-
-def particleAccuracy(particle, dataSlice):
+def particleAccuracy(particle, dataSlice): #We check accuracy here based on aggragte distance from datapoints in the current slice weighted with our reflectivty value.
 
 	accuracy = 0
 	for data in dataSlice:

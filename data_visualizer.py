@@ -2,7 +2,7 @@ import pandas
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from Thing import *
+from particle_filter import *
 
 class Point:
 	''' Contains information about a single datapoint '''
