@@ -35,6 +35,8 @@ def project(x, y, angle):
 	return np.cos(angle)*x+np.sin(angle)*y
 
 # Load data from file
+# Data files were downloaded using the WCT tool
+# https://data.nodc.noaa.gov/cgi-bin/iso?id=gov.noaa.ncdc:C00700
 dat = pandas.read_csv('KLOT_ParkForest_Refl.csv')
 N = len(dat)
 
