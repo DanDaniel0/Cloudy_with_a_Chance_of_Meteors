@@ -5,6 +5,7 @@ import numpy as np
 from Thing import *
 
 class Point:
+	''' Contains information about a single datapoint '''
 	def __init__(self, x, y, refl, height):
 		self.x = x
 		self.y = y
@@ -12,9 +13,12 @@ class Point:
 		self.height = height
 
 def get(points, key):
+	''' Returns the key attribute of each point as a list '''
 	return [getattr(p,key) for p in points]
 
 def slice(points, angle=np.pi/4, n_slices=5):
+	''' Slices the dataset along a given direction into equally spaced groups of data'''
+	# TODO: compute direction of greatest variation directly from the dataset
 	slices = [[] for n in range(n_slices)]
 	d = [project(p.x,p.y,angle) for p in points]
 	dmin = min(d)
@@ -25,12 +29,16 @@ def slice(points, angle=np.pi/4, n_slices=5):
 		point.d = d[i]
 		point.n = np.sqrt(point.x**2+point.y**2-d[i]**2)
 	return slices
-		
+
 def project(x, y, angle):
+	''' Projects a point onto a direction vector '''
 	return np.cos(angle)*x+np.sin(angle)*y
 
-dat=pandas.read_csv('KLOT_ParkForest_Refl.csv')
+# Load data from file
+dat = pandas.read_csv('KLOT_ParkForest_Refl.csv')
 N = len(dat)
+
+# Parse data into list of point objects
 points = []
 for i in range(N):
 	if dat['elevAngle'][i] < 9:
@@ -40,20 +48,19 @@ for i in range(N):
 	p = Point(x, y, dat['value'][i], dat['heightRel'][i]/1000)
 	points.append(p)
 
+# Slice data along axis of greatest variations
 slices = slice(points, n_slices=6)
 
+# Scatter plot the data slices in different colors (axis units are in km)
 fig = plt.figure()
 ax = fig.add_subplot(111, aspect='equal', projection='3d')
-# ax.scatter(get(points, 'x'), get(points, 'y'), get(points, 'height'), c=get(points, 'refl'))
-# ax.scatter(get(slices[0], 'x'), get(slices[0], 'y'), get(slices[0], 'height'), c='k')
-# ax.scatter(get(slices[1], 'x'), get(slices[1], 'y'), get(slices[1], 'height'), c='b')
-# ax.scatter(get(slices[2], 'x'), get(slices[2], 'y'), get(slices[2], 'height'), c='g')
 for data in slices:
 	ax.scatter(get(data, 'x'), get(data, 'y'), get(data, 'height'))
 
-# plt.show()
-
+# Predict meteor position and velocity distribution using particle filter
 output = particleFilter(slices, particleCount=1000, terminalVel=1)
+
+# Plot predicted mean particle position for each slice
 x = []
 y = []
 z = []
@@ -63,17 +70,11 @@ for data, particles in zip(slices, output):
 	z += [np.mean(list(particles[:,0]))]
 ax.plot(x,y,z)
 
+# Extrapolate landing sites from particle filter results
+# TODO: incorporate predicted velocities into extrapolation
 direction = [x[-1]-x[0], y[-1]-y[0], z[-1]-z[0]]
 direction = [d/direction[2] for d in direction]
 landX = [x[-1]-direction[0]*h for h in list(output[-1][:,0])]
 landY = [y[-1]-direction[1]*h for h in list(output[-1][:,0])]
 ax.scatter(landX, landY, 0)
-
 plt.show()
-# for data in output:
-# 	plt.hist(data[:,0], 100)
-# plt.legend([str(i) for i in range(1,len(output)+1)])
-
-# plt.show()
-# plt.hist(landX, 100)
-# plt.show()
