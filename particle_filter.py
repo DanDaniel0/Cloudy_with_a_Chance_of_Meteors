@@ -1,18 +1,11 @@
-#@ Carrie, this is not the final state of the code, we still need to:
-# - use 'n' when plotting the results
-# - verify our results
-# - figure out how to implement a 2D projected heatmap on a 3D plot
-# - polish & comment.
-# - more potential tasks we forgot to mention
-
 import random
 import numpy as np
 
-#Each DataBuckets is an array of DataBucket (also refered to as DataSlice)
-#Each DataBucket is an array of points
-#Each point as attributes such as .x (x position), .y (y position), .height (height), .relf (reflectivity), .d (distance along axis of greatest variation), .n (distance perpendictular to the axis of greatest variation)
-#Each Particles is an array of particles
-#Each Particle is an array with the structure of [height, accuracy, zVel, nVel, nPos]
+# Each dataBuckets is an array of DataBucket (also refered to as DataSlice)
+# Each dataBucket is an array of points
+# Each point has attributes such as .x (x position), .y (y position), .height (height), .relf (reflectivity), .d (distance along axis of greatest variation), .n (distance perpendictular to the axis of greatest variation)
+# Each particles is an array of particles
+# Each particle is an array with the structure of [height, accuracy, zVel, nVel, nPos]
 
 def get(points, key):
 	return [getattr(p,key) for p in points]
@@ -84,8 +77,8 @@ def getParticleHeights(dataBuckets, particleCount, terminalVel):
 
 	return(startParticles)
 
-def particleAccuracy(particle, dataSlice): #We check accuracy here based on aggragte distance from datapoints in the current slice weighted with our reflectivty value.
-
+def particleAccuracy(particle, dataSlice):
+	'''We check accuracy here based on aggragate distance from datapoints in the current slice weighted with our reflectivity value'''
 	accuracy = 0
 	for data in dataSlice:
 

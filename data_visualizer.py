@@ -78,3 +78,8 @@ landX = [x[-1]-direction[0]*h for h in list(output[-1][:,0])]
 landY = [y[-1]-direction[1]*h for h in list(output[-1][:,0])]
 ax.scatter(landX, landY, 0)
 plt.show()
+
+# TODO: implement a 2D projected heatmap onto the 3D scatter plot
+# TODO: overlay actual locations of recovered meteorites
+# TODO: underlay a map
+# TODO: look into effects of wind
