@@ -29,20 +29,18 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel
 		#particles is a 2d array[heights, accuracy (low is better)]
 		for particle in particles:
 			particle[1] = particleAccuracy(particle, dataBuckets[i])
-		print(len(particles))
 		particles = particles[particles[:,0].argsort()]
-		particles = particles[:len(particles)//cullLimit,:]
-		print(len(particles))
-
+		# particles = particles[:len(particles)//cullLimit,:]
+		counter = len(particles)//cullLimit
 		if(i != len(dataBuckets)):
-			for i, particle in enumerate(particles[:,:]):
+			for particle in particles[:len(particles)//cullLimit,:]:
 				for j in range(cullLimit-1):
 					p1 = np.copy(particle)
 					p1[2] -= (particle[2] * (1.5-random.random()*1))
 					p1[3] -= (particle[3] * (1.5-random.random()*1))
-					particles = [p1] + particles
+					# particles[counter] = p1
+					counter += 1
 			results += [particles]
-			print(len(particles))
 		for particle in particles: # Move the particles here
 			particle[0] -= particle[2]
 			particle[4] += particle[3]
@@ -69,8 +67,8 @@ def getParticleHeights(dataBuckets, particleCount, terminalVel):
  	
  	#height, accuracy, zVel, nVel, nPos
 	startParticles = np.zeros((particleCount,5))   #array of particle heights & accuarcy
-	initialHeights = np.zeros((len(dataBuckets[0]),1)) 
-	initialN = np.zeros((len(dataBuckets[0]),1)) 
+	initialHeights = np.zeros((len(dataBuckets[0]),1))
+	initialN = np.zeros((len(dataBuckets[0]),1))
 
 	stepVel = ((np.max([b.d for b in dataBuckets[-1]]) - np.min([b.d for b in dataBuckets[0]])))
 	terminalVel = np.sqrt((np.max([b.d for b in dataBuckets[-1]]) - np.min([b.d for b in dataBuckets[0]]))**2 \

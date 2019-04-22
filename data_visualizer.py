@@ -53,8 +53,7 @@ for data in slices:
 
 # plt.show()
 
-output = particleFilter(slices, particleCount=10000, terminalVel=1)
-
+output = particleFilter(slices, particleCount=1000, terminalVel=1)
 x = []
 y = []
 z = []
