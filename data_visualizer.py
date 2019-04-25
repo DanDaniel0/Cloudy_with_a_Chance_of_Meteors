@@ -59,7 +59,7 @@ for data in slices:
 	ax.scatter(get(data, 'x'), get(data, 'y'), get(data, 'height'))
 
 # Predict meteor position and velocity distribution using particle filter
-particles = particleFilter(slices, particleCount=1000, terminalVel=1)
+particles = particleFilter(slices, particleCount=10000, terminalVel=1)
 
 # Convert output particles into original coordinates
 R_inv = np.linalg.inv(R)

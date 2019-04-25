@@ -8,7 +8,7 @@ import numpy as np
 # Each particles is an array of particles
 # Each particle is an array with the structure of [height, accuracy, zVel, nVel, nPos]
 
-def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel = 1):
+def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel = "hat"):
 	''' Takes in a presliced list of data points, and generates a probability distribution 
 		of the meteor position and velocity in each slice using a particle filter.
 		particleCount = number of particles to simulate
@@ -29,8 +29,8 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel
 			for particle in particles[:len(particles)//cullLimit,:]: # Replace the least accurate particles
 				for j in range(cullLimit-1):
 					p1 = np.copy(particle) # Create new particles similar to the most accurate particles
-					p1[2] -= (particle[2] * (1.5-random.random()*1)) # Randomly vary the new particles
-					p1[3] -= (particle[3] * (1.5-random.random()*1))
+					p1[2] -= (particle[2] * (1.25-random.random()*.5)) # Randomly vary the new particles
+					p1[3] -= (particle[3] * (1.25-random.random()*.5))
 					counter += 1
 			results += [particles] # Store the particle distribution at this step to return later
 
@@ -73,8 +73,8 @@ def getParticleHeights(dataBuckets, particleCount, terminalVel):
 		startParticles[i][4] = (random.random() * (starterNMax - starterNMin)) + starterNMin # horizontal position
 
 		angle = (random.random()*np.pi/4)-(np.pi/8) # angle of motion relative to the ground
-		startParticles[i][2] = np.cos(angle)*bVel # vertical velocity
-		startParticles[i][3] = np.sin(angle)*bVel # horizontal velocity
+		startParticles[i][2] = np.cos(angle)*bVel*((random.random()*.5)+(.75)) # vertical velocity
+		startParticles[i][3] = np.sin(angle)*bVel*((random.random()*.5)+(.75)) # horizontal velocity
 
 	return(startParticles)
 
