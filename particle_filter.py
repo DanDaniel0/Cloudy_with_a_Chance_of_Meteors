@@ -3,77 +3,78 @@ import numpy as np
 
 # Each dataBuckets is an array of DataBucket (also refered to as DataSlice)
 # Each dataBucket is an array of points
-# Each point has attributes such as .x (x position), .y (y position), .height (height), .relf (reflectivity), .d (distance along axis of greatest variation), .n (distance perpendictular to the axis of greatest variation)
+# Each point has attributes such as .x (x position), .y (y position), .height (height), .relf (reflectivity),
+# .d (distance along axis of greatest variation), .n (distance perpendictular to the axis of greatest variation)
 # Each particles is an array of particles
 # Each particle is an array with the structure of [height, accuracy, zVel, nVel, nPos]
 
-def get(points, key):
-	return [getattr(p,key) for p in points]
-
 def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel = 1):
+	''' Takes in a presliced list of data points, and generates a probability distribution 
+		of the meteor position and velocity in each slice using a particle filter.
+		particleCount = number of particles to simulate
+		cullLimit = relative number of particles to eliminate and replace between steps
+		terminalVel = the estimated terminal velocity of the meteor (currently unused)
+	'''
 	
 	results = []
-	particles = getParticleHeights(dataBuckets, particleCount, terminalVel) # This gets initial values for the particles
+	particles = getParticleHeights(dataBuckets, particleCount, terminalVel) # Randomly initialize a set of particles
 
-	for i in range(len(dataBuckets)): #This is where we sort, cull, and replace our particles
+	for i in range(len(dataBuckets)): # Cull, repopulate, and update the particles for each step
 		
 		for particle in particles:
-			particle[1] = particleAccuracy(particle, dataBuckets[i])
-		particles = particles[particles[:,0].argsort()]
+			particle[1] = particleAccuracy(particle, dataBuckets[i]) # Compute how well each particle fits the data
+		particles = particles[particles[:,0].argsort()] # Sort particles by accuracy
 		counter = len(particles)//cullLimit
 		if(i != len(dataBuckets)):
-			for particle in particles[:len(particles)//cullLimit,:]:
+			for particle in particles[:len(particles)//cullLimit,:]: # Replace the least accurate particles
 				for j in range(cullLimit-1):
-					p1 = np.copy(particle)
-					p1[2] -= (particle[2] * (1.5-random.random()*1))
+					p1 = np.copy(particle) # Create new particles similar to the most accurate particles
+					p1[2] -= (particle[2] * (1.5-random.random()*1)) # Randomly vary the new particles
 					p1[3] -= (particle[3] * (1.5-random.random()*1))
 					counter += 1
-			results += [particles]
+			results += [particles] # Store the particle distribution at this step to return later
 
-		for particle in particles: # We move the particles here
+		for particle in particles: # Update particle positions using their estimated velocities
 			particle[0] -= particle[2]
 			particle[4] += particle[3]
 
-	return(results)
+	return(results) # Return a list containing the particle distribution at each step
 
 def getParticleHeights(dataBuckets, particleCount, terminalVel):
- 	
-	startParticles = np.zeros((particleCount,5))   #array of particle heights & accuarcy
+	''' Randomly generate an initial set of particles '''
+
+	startParticles = np.zeros((particleCount,5))   # Array of particle heights & accuarcy
 	initialHeights = np.zeros((len(dataBuckets[0]),1))
 	initialN = np.zeros((len(dataBuckets[0]),1))
 
+	# Compute rough velocity estimates
 	stepVel = ((np.max([b.d for b in dataBuckets[-1]]) - np.min([b.d for b in dataBuckets[0]])))
 	terminalVel = np.sqrt((np.max([b.d for b in dataBuckets[-1]]) - np.min([b.d for b in dataBuckets[0]]))**2 \
 		+ (np.max([b.height for b in dataBuckets[0]]) - np.min([b.height for b in dataBuckets[-1]]))**2)
 
-	stepVel = stepVel/len(dataBuckets)
-	terminalVel = terminalVel/len(dataBuckets)
+	stepVel = stepVel/len(dataBuckets) # Velocity in direction of slicing
+	terminalVel = terminalVel/len(dataBuckets) # Total velocity
+	bVel = np.sqrt(terminalVel**2- stepVel**2) # Combined vertical and slicing-direction velocity
+	# print((terminalVel, stepVel))
 
-
-	bVel = np.sqrt(terminalVel**2- stepVel**2)
-	print((terminalVel, stepVel))
-
-
+	# Compute rough position estimates
 	for i,point in enumerate(dataBuckets[0]):
-		initialHeights[i] = point.height
-
+		initialHeights[i] = point.height # height
 	for i,point in enumerate(dataBuckets[0]):
-		initialN[i] = point.n
-
+		initialN[i] = point.n # horizontal position
 	starterMax = max(initialHeights)
 	starterMin = min(initialHeights)
 	starterNMax = max(initialN)
 	starterNMin = min(initialN)
 
+	# Randomly generate particle positions and velocities around estimates
 	for i in range(particleCount):
-		startParticles[i][0] = (random.random() * (starterMax - starterMin)) + starterMin
-		startParticles[i][4] = (random.random() * (starterNMax - starterNMin)) + starterNMin
+		startParticles[i][0] = (random.random() * (starterMax - starterMin)) + starterMin # height
+		startParticles[i][4] = (random.random() * (starterNMax - starterNMin)) + starterNMin # horizontal position
 
-
-		angle = (random.random()*np.pi/4)-(np.pi/8)
-		startParticles[i][2] = np.cos(angle)*bVel
-		startParticles[i][3] = np.sin(angle)*bVel
-
+		angle = (random.random()*np.pi/4)-(np.pi/8) # angle of motion relative to the ground
+		startParticles[i][2] = np.cos(angle)*bVel # vertical velocity
+		startParticles[i][3] = np.sin(angle)*bVel # horizontal velocity
 
 	return(startParticles)
 
@@ -81,7 +82,6 @@ def particleAccuracy(particle, dataSlice):
 	'''We check accuracy here based on aggragate distance from datapoints in the current slice weighted with our reflectivity value'''
 	accuracy = 0
 	for data in dataSlice:
-
 		accuracy += np.sqrt((np.abs(particle[0] - data.height)**2 + (particle[4] - data.n)**2) * (data.refl+10.5))
 	
 	return (accuracy)
