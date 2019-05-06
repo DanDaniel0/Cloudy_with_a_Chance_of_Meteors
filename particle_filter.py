@@ -23,17 +23,25 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel
 		
 		for particle in particles:
 			particle[1] = particleAccuracy(particle, dataBuckets[i]) # Compute how well each particle fits the data
-		particles = particles[particles[:,0].argsort()] # Sort particles by accuracy
-		counter = len(particles)//cullLimit
-		if(i != len(dataBuckets)):
-			for particle in particles[:len(particles)//cullLimit,:]: # Replace the least accurate particles
-				for j in range(cullLimit-1):
-					p1 = np.copy(particle) # Create new particles similar to the most accurate particles
-					p1[2] -= (particle[2] * (1.25-random.random()*.5)) # Randomly vary the new particles
-					p1[3] -= (particle[3] * (1.25-random.random()*.5))
-					counter += 1
-			results += [particles] # Store the particle distribution at this step to return later
 
+		particles = particles[particles[:,1].argsort()] # Sort particles by accuracy
+		counter = len(particles)//cullLimit
+
+		if(i != len(dataBuckets)-1):
+			for k, particle in enumerate(particles[:len(particles)//cullLimit,:]): # Replace the least accurate particles
+				for j in range(cullLimit-1):
+					vari = .35
+					p1 = np.copy(particle) # Create new particles similar to the most accurate particles
+					p1[2] += (1)*(random.random()-.5)#(particle[2] * ((1+vari)-random.random()*vari*2)) # Randomly vary the new particles
+					p1[3] += (1)*(random.random()-.5)
+					p1[5] = k
+					particles[counter] = p1
+					counter += 1
+		else:
+			particles = particles[:len(particles)//cullLimit]
+
+		results += [[np.copy(p) for p in particles]] # Store the particle distribution at this step to return later
+		
 		for particle in particles: # Update particle positions using their estimated velocities
 			particle[0] -= particle[2]
 			particle[4] += particle[3]
@@ -43,7 +51,7 @@ def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel
 def getParticleHeights(dataBuckets, particleCount, terminalVel):
 	''' Randomly generate an initial set of particles '''
 
-	startParticles = np.zeros((particleCount,5))   # Array of particle heights & accuarcy
+	startParticles = np.zeros((particleCount,6))   # Array of particle heights & accuracy
 	initialHeights = np.zeros((len(dataBuckets[0]),1))
 	initialN = np.zeros((len(dataBuckets[0]),1))
 
@@ -69,7 +77,7 @@ def getParticleHeights(dataBuckets, particleCount, terminalVel):
 
 	# Randomly generate particle positions and velocities around estimates
 	for i in range(particleCount):
-		startParticles[i][0] = (random.random() * (starterMax - starterMin)) + starterMin # height
+		startParticles[i][0] = starterMax#(random.random() * (starterMax - starterMin)) + starterMin # height
 		startParticles[i][4] = (random.random() * (starterNMax - starterNMin)) + starterNMin # horizontal position
 
 		angle = (random.random()*np.pi/4)-(np.pi/8) # angle of motion relative to the ground

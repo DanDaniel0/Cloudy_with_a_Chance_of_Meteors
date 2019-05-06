@@ -4,6 +4,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from particle_filter import *
 
+particleCount = 10000
+
 class Point:
 	''' Contains information about a single datapoint '''
 	def __init__(self, x, y, height, refl=0):
@@ -37,6 +39,13 @@ def slice(points, angle=np.pi/4, n_slices=5):
 # Data files were downloaded using the WCT tool
 # https://data.nodc.noaa.gov/cgi-bin/iso?id=gov.noaa.ncdc:C00700
 dat = pandas.read_csv('KLOT_ParkForest_Refl.csv')
+recovered = pandas.read_csv('RecoveredMeteors.csv')
+
+actualLat = [float(recovered['lat'][i]) for i in range(len(recovered['lat']))]
+actualLong = [float(recovered['long'][i]) for i in range(len(recovered['long']))]
+actualX = [(actualLong[i]-dat['longitude'][0])*111*np.cos(np.radians(actualLat[i])) for i in range(len(actualLat))]
+actualY = [(actualLat[i]-dat['latitude'][0])*111 for i in range(len(actualLat))]
+
 N = len(dat)
 
 # Parse data into list of point objects
@@ -53,13 +62,14 @@ for i in range(N):
 slices, R, dmin, delta = slice(points, angle=np.radians(60), n_slices=6)
 
 # Scatter plot the data slices in different colors (axis units are in km)
-fig = plt.figure()
-ax = fig.add_subplot(111, aspect='equal', projection='3d')
-for data in slices:
-	ax.scatter(get(data, 'x'), get(data, 'y'), get(data, 'height'))
+if particleCount < 10000:
+	fig = plt.figure()
+	ax = fig.add_subplot(111, aspect='equal', projection='3d')
+	for data in slices:
+		ax.scatter(get(data, 'x'), get(data, 'y'), get(data, 'height'))
 
 # Predict meteor position and velocity distribution using particle filter
-particles = particleFilter(slices, particleCount=10000, terminalVel=1)
+particles = particleFilter(slices, particleCount=particleCount, terminalVel=1)
 
 # Convert output particles into original coordinates
 R_inv = np.linalg.inv(R)
@@ -76,6 +86,7 @@ for i, step in enumerate(particles):
 		p.vx = vel[0]
 		p.vy = vel[1]
 		p.vz = particle[2]
+		p.parent = particle[5]
 		output_step += [p]
 	output += [output_step]
 
@@ -83,33 +94,45 @@ for i, step in enumerate(particles):
 x = [np.mean(get(o, 'x')) for o in output]
 y = [np.mean(get(o, 'y')) for o in output]
 z = [np.mean(get(o, 'height')) for o in output]
-ax.plot(x,y,z)
+if particleCount < 10000:
+	ax.plot(x,y,z)
 
 # Extrapolate landing sites from particle filter results
 landX = [x[-1]-p.vx*p.height/p.vz for p in list(output[-1])]
 landY = [y[-1]-p.vy*p.height/p.vz for p in list(output[-1])]
 landLat = [y/111+dat['latitude'][0] for y in landY]
 landLon = [x/111/np.cos(np.radians(lat))+dat['longitude'][0] for x, lat in zip(landX, landLat)]
-
-# Plot individual particle trajectories
-for x, y, i in zip(landX, landY, range(len(landX))):
-	s = [o[i] for o in output]
-# Uncomment the following line to plot individual particle trajectories
-# Works best with a smaller number of partices (e.g. 10)
-# To change particle count edit the "particleCount" value on line 62
-	# ax.plot([o.x for o in s]+[x], [o.y for o in s]+[y], [o.height for o in s]+[0])
+	
+# Plot particle trajectories
+for x, y, p in zip(landX, landY, output[-1]):
+	xpath = [x, p.x]
+	ypath = [y, p.y]
+	zpath = [0, p.height]
+	parent = p.parent
+	for bucket in output[:-1][::-1]:
+		p = bucket[int(parent)]
+		xpath += [p.x]
+		ypath += [p.y]
+		zpath += [p.height]
+		parent = p.parent
+	if particleCount < 10000:
+		ax.plot(xpath, ypath, zpath, '.-')
 
 # Plot landing sites on the same graph as the radar observations
-ax.scatter(landX, landY, 0, c='r')
-plt.show()
+if particleCount < 10000:
+	ax.scatter(landX, landY, 0, c='r')
+	ax.scatter(actualX, actualY, 0, c='b')
+	ax.scatter(actualX[0], actualY[0], 0, c='c')
+	plt.show()
 
 # Plot heatmap of landing locations
-grid, x_axis, y_axis = np.histogram2d(landLon, landLat, bins=(30,50))
+grid, x_axis, y_axis = np.histogram2d(landLon, landLat, bins=(4*50,4*50), range=[[-87.75, -87.55], [41.4, 41.6]])
 extent = [x_axis[0], x_axis[-1], y_axis[0], y_axis[-1]]
-plt.imshow(grid, cmap='hot', interpolation='nearest', extent=extent, origin='lower')
+plt.imshow(np.transpose(grid), cmap='hot', interpolation='nearest', extent=extent, origin='lower')
+plt.colorbar()
+plt.scatter(actualLong,actualLat,c='b',s=5)
 plt.xlabel('longitude')
 plt.ylabel('latitude')
-plt.colorbar()
 plt.title('Meteor Landing Site Probability Distribution')
 plt.show()
 
