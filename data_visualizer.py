@@ -4,7 +4,12 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from particle_filter import *
 
+# Number of particles to use for the simulation
+# If particleCount > 10000 then only the heat map is shown
 particleCount = 50
+
+# Whether to include air resistance in the model
+airResistance = False
 
 class Point:
 	''' Contains information about a single datapoint '''
@@ -20,7 +25,6 @@ def get(points, key):
 
 def slice(points, angle=np.pi/4, n_slices=5):
 	''' Slices the dataset along a given direction into equally spaced groups of data'''
-	# TODO: compute direction of greatest variation directly from the dataset
 	R = np.array(((np.cos(angle),np.sin(angle)), (-np.sin(angle), np.cos(angle))))
 	slices = [[] for n in range(n_slices)]
 	new_pts = np.array([np.dot(R, np.array((p.x,p.y))) for p in points])
@@ -36,6 +40,9 @@ def slice(points, angle=np.pi/4, n_slices=5):
 	return (slices, R, dmin, delta)
 
 def land(p):
+	''' Determines landing site of a particle using numerical integration of drag
+		and gravity forces, with the assumption of moving at terminal velocity
+	'''
 	g = 9.81/1000
 	r = 0
 	z = p.height
@@ -61,23 +68,26 @@ def land(p):
 		pts += [(p.x-r*np.cos(theta), p.y-r*np.sin(theta), z)]
 	return (p.x-r*np.cos(theta), p.y-r*np.sin(theta), pts)
 
-# Load data from file
+# Load radar reflectivity data from file
 # Data files were downloaded using the WCT tool
 # https://data.nodc.noaa.gov/cgi-bin/iso?id=gov.noaa.ncdc:C00700
 dat = pandas.read_csv('KLOT_ParkForest_Refl.csv')
+N = len(dat)
+
+# Load recovered meteor landing site data from file
+# Data was transcribed from http://www.meteoriteorbits.info/
 recovered = pandas.read_csv('RecoveredMeteors.csv')
 
+# Convert landing site coordinates into x-y coordinates
 actualLat = [float(recovered['lat'][i]) for i in range(len(recovered['lat']))]
 actualLong = [float(recovered['long'][i]) for i in range(len(recovered['long']))]
 actualX = [(actualLong[i]-dat['longitude'][0])*111*np.cos(np.radians(actualLat[i])) for i in range(len(actualLat))]
 actualY = [(actualLat[i]-dat['latitude'][0])*111 for i in range(len(actualLat))]
 
-N = len(dat)
-
 # Parse data into list of point objects
 points = []
 for i in range(N):
-	if dat['elevAngle'][i] < 9:
+	if dat['elevAngle'][i] < 9: # Eliminate elevations that didn't contain the meteor
 		continue
 	x = (dat['longitude'][i]-dat['longitude'][0])*111*np.cos(np.radians(dat['latitude'][i])) # km
 	y = (dat['latitude'][i]-dat['latitude'][0])*111 # km
@@ -124,23 +134,29 @@ if particleCount < 10000:
 	ax.plot(x,y,z)
 
 # Extrapolate landing sites from particle filter results
-# land = [land(p) for p in list(output[-1])]
-# for p in land:
-# 	if particleCount < 10000:
-# 		ax.plot([l[0] for l in p[2]],[l[1] for l in p[2]],[l[2] for l in p[2]])
-# landX = [l[0] for l in land]
-# landY = [l[1] for l in land]
-
-landX = [x[-1]-p.vx*p.height/p.vz for p in list(output[-1])]
-landY = [y[-1]-p.vy*p.height/p.vz for p in list(output[-1])]
+if airResistance:
+	land = [land(p) for p in list(output[-1])]
+	for p in land:
+		if particleCount < 10000:
+			ax.plot([l[0] for l in p[2]],[l[1] for l in p[2]],[l[2] for l in p[2]])
+	landX = [l[0] for l in land]
+	landY = [l[1] for l in land]
+else:
+	landX = [x[-1]-p.vx*p.height/p.vz for p in list(output[-1])]
+	landY = [y[-1]-p.vy*p.height/p.vz for p in list(output[-1])]
 landLat = [y/111+dat['latitude'][0] for y in landY]
 landLon = [x/111/np.cos(np.radians(lat))+dat['longitude'][0] for x, lat in zip(landX, landLat)]
 	
 # Plot particle trajectories
 for x, y, p in zip(landX, landY, output[-1]):
-	xpath = [x, p.x]
-	ypath = [y, p.y]
-	zpath = [0, p.height]
+	if airResistance:
+		xpath = [p.x]
+		ypath = [p.y]
+		zpath = [p.height]
+	else:
+		xpath = [x, p.x]
+		ypath = [y, p.y]
+		zpath = [0, p.height]
 	parent = p.parent
 	for bucket in output[:-1][::-1]:
 		p = bucket[int(parent)]
@@ -155,12 +171,11 @@ for x, y, p in zip(landX, landY, output[-1]):
 if particleCount < 10000:
 	ax.scatter(landX, landY, 0, c='r')
 	ax.scatter(actualX, actualY, 0, c='b')
-	# ax.scatter(actualX[0], actualY[0], 0, c='c')
 	plt.show()
 
 # Plot heatmap of landing locations
 grid, x_axis, y_axis = np.histogram2d(landLon, landLat, bins=(4*50,4*50), range=[[-87.75, -87.55], [41.4, 41.6]])
-grid /= particleCount
+grid /= (particleCount/100)
 extent = [x_axis[0], x_axis[-1], y_axis[0], y_axis[-1]]
 plt.imshow(np.transpose(grid), cmap='hot', interpolation='nearest', extent=extent, origin='lower')
 plt.colorbar()
@@ -169,6 +184,3 @@ plt.xlabel('longitude')
 plt.ylabel('latitude')
 plt.title('Meteor Landing Site Probability Distribution')
 plt.show()
-
-# TODO: overlay the heatmap with the 3D scatter plot
-# TODO: underlay a geographic map

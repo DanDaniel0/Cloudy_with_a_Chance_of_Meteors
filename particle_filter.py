@@ -8,7 +8,7 @@ import numpy as np
 # Each particles is an array of particles
 # Each particle is an array with the structure of [height, accuracy, zVel, nVel, nPos]
 
-def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 5, terminalVel = "hat"):
+def particleFilter(dataBuckets, particleCount = 1000, cullLimit = 3, terminalVel = "hat"):
 	''' Takes in a presliced list of data points, and generates a probability distribution 
 		of the meteor position and velocity in each slice using a particle filter.
 		particleCount = number of particles to simulate
