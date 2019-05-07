@@ -35,6 +35,32 @@ def slice(points, angle=np.pi/4, n_slices=5):
 		point.n = np.sqrt(point.x**2+point.y**2-d[i]**2)
 	return (slices, R, dmin, delta)
 
+def land(p):
+	g = 9.81/1000
+	r = 0
+	z = p.height
+	phi = np.arctan2(-p.vz, np.sqrt(p.vx**2+p.vy**2))
+	theta = np.arctan2(p.vy, p.vx)
+	terminalVel = (0.003095*(z*1000)+50.797036)/1000
+	vr = terminalVel*np.cos(phi)
+	vz = terminalVel*np.sin(phi)
+	dt = 1
+	pts = []
+	while z > 0:
+		terminalVel = (0.003095*(z*1000)+50.797036)/1000
+		phi = np.arctan2(vz, vr)
+		vr = terminalVel*np.cos(phi)
+		vz = terminalVel*np.sin(phi)
+		drag = -g * vr / (vr**2+vz**2)
+		ar = -drag*vr
+		az = -drag*vz-g
+		vr += ar*dt
+		vz += az*dt
+		r += vr*dt
+		z += vz*dt
+		pts += [(p.x-r*np.cos(theta), p.y-r*np.sin(theta), z)]
+	return (p.x-r*np.cos(theta), p.y-r*np.sin(theta), pts)
+
 # Load data from file
 # Data files were downloaded using the WCT tool
 # https://data.nodc.noaa.gov/cgi-bin/iso?id=gov.noaa.ncdc:C00700
@@ -98,8 +124,15 @@ if particleCount < 10000:
 	ax.plot(x,y,z)
 
 # Extrapolate landing sites from particle filter results
-landX = [x[-1]-p.vx*p.height/p.vz for p in list(output[-1])]
-landY = [y[-1]-p.vy*p.height/p.vz for p in list(output[-1])]
+land = [land(p) for p in list(output[-1])]
+for p in land:
+	if particleCount < 10000:
+		ax.plot([l[0] for l in p[2]],[l[1] for l in p[2]],[l[2] for l in p[2]])
+landX = [l[0] for l in land]
+landY = [l[1] for l in land]
+
+# landX = [x[-1]-p.vx*p.height/p.vz for p in list(output[-1])]
+# landY = [y[-1]-p.vy*p.height/p.vz for p in list(output[-1])]
 landLat = [y/111+dat['latitude'][0] for y in landY]
 landLon = [x/111/np.cos(np.radians(lat))+dat['longitude'][0] for x, lat in zip(landX, landLat)]
 	
