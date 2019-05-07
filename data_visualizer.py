@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from particle_filter import *
 
-particleCount = 10000
+particleCount = 50
 
 class Point:
 	''' Contains information about a single datapoint '''
@@ -124,15 +124,15 @@ if particleCount < 10000:
 	ax.plot(x,y,z)
 
 # Extrapolate landing sites from particle filter results
-land = [land(p) for p in list(output[-1])]
-for p in land:
-	if particleCount < 10000:
-		ax.plot([l[0] for l in p[2]],[l[1] for l in p[2]],[l[2] for l in p[2]])
-landX = [l[0] for l in land]
-landY = [l[1] for l in land]
+# land = [land(p) for p in list(output[-1])]
+# for p in land:
+# 	if particleCount < 10000:
+# 		ax.plot([l[0] for l in p[2]],[l[1] for l in p[2]],[l[2] for l in p[2]])
+# landX = [l[0] for l in land]
+# landY = [l[1] for l in land]
 
-# landX = [x[-1]-p.vx*p.height/p.vz for p in list(output[-1])]
-# landY = [y[-1]-p.vy*p.height/p.vz for p in list(output[-1])]
+landX = [x[-1]-p.vx*p.height/p.vz for p in list(output[-1])]
+landY = [y[-1]-p.vy*p.height/p.vz for p in list(output[-1])]
 landLat = [y/111+dat['latitude'][0] for y in landY]
 landLon = [x/111/np.cos(np.radians(lat))+dat['longitude'][0] for x, lat in zip(landX, landLat)]
 	
@@ -155,11 +155,12 @@ for x, y, p in zip(landX, landY, output[-1]):
 if particleCount < 10000:
 	ax.scatter(landX, landY, 0, c='r')
 	ax.scatter(actualX, actualY, 0, c='b')
-	ax.scatter(actualX[0], actualY[0], 0, c='c')
+	# ax.scatter(actualX[0], actualY[0], 0, c='c')
 	plt.show()
 
 # Plot heatmap of landing locations
 grid, x_axis, y_axis = np.histogram2d(landLon, landLat, bins=(4*50,4*50), range=[[-87.75, -87.55], [41.4, 41.6]])
+grid /= particleCount
 extent = [x_axis[0], x_axis[-1], y_axis[0], y_axis[-1]]
 plt.imshow(np.transpose(grid), cmap='hot', interpolation='nearest', extent=extent, origin='lower')
 plt.colorbar()
@@ -170,6 +171,4 @@ plt.title('Meteor Landing Site Probability Distribution')
 plt.show()
 
 # TODO: overlay the heatmap with the 3D scatter plot
-# TODO: overlay actual locations of recovered meteorites
 # TODO: underlay a geographic map
-# TODO: look into effects of wind
